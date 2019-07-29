@@ -19,11 +19,12 @@ def hash_password(password):
 def get_user_session_id():
     return uuid4().hex[:8]
 
-def create_new_user(username, password):
+def create_new_user(user_name, password):
     hashed_password = hash_password(password)
     try:
         with _connection.cursor() as cursor:
-            sql = f"INSERT INTO users VALUES('{username}', '{hashed_password}')"
+            sql = f"INSERT INTO users(user_name, password) VALUES('{user_name}', '{hashed_password}')"
+            print(sql)
 
             cursor.execute(sql)
             _connection.commit()
@@ -34,11 +35,23 @@ def create_new_user(username, password):
     return True
 
 
-def is_user_exists(username, password):
+def is_user_exists(user_name):
+    try:
+        with _connection.cursor() as cursor:
+            sql = f"SELECT * FROM users WHERE user_name='{user_name}'"
+            cursor.execute(sql)
+            result = cursor.fetchone()
+
+            return result is not None
+    except Exception as e:
+        print(f"An error occured when trying to fetch user, error: {e}")
+        return False
+
+def is_valid_password(user_name, password):
     hashed_password = hash_password(password)
     try:
         with _connection.cursor() as cursor:
-            sql = f"SELECT * FROM users WHERE username='{username}' AND password='{hashed_password}')"
+            sql = f"SELECT * FROM users WHERE user_name='{user_name}' AND password='{hashed_password}'"
 
             cursor.execute(sql)
             result = cursor.fetchone()
@@ -48,12 +61,12 @@ def is_user_exists(username, password):
         print(f"An error occured when trying to fetch user, error: {e}")
         return False
 
-def update_user_session(username, password):
+def update_user_session(user_name, password):
     hashed_password = hash_password(password)
     new_session_id = get_user_session_id()
     try:
         with _connection.cursor() as cursor:
-            sql = f"UPDATE users SET session_id='{new_session_id}' WHERE username='{username}' AND password='{hashed_password}')"
+            sql = f"UPDATE users SET session_id='{new_session_id}' WHERE user_name='{user_name}' AND password='{hashed_password}'"
 
             cursor.execute(sql)
             _connection.commit()
@@ -62,10 +75,10 @@ def update_user_session(username, password):
         print(f"An error occured when trying to update user session, error: {e}")
         return False
 
-def is_user_session_valid(username, session_id):
+def is_user_session_valid(user_name, session_id):
     try:
         with _connection.cursor() as cursor:
-            sql = f"SELECT * from users WHERE session_id='{session_id}' AND username='{username}'"
+            sql = f"SELECT * from users WHERE session_id='{session_id}' AND user_name='{user_name}'"
 
             cursor.execute(sql)
             result = cursor.fetchone()
